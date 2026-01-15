@@ -33,7 +33,7 @@ with open(annotation_path) as f:
     annotation = json.load(f)
 length = len(annotation["images"])
 data_set = {
-    "id": np.zeros(length),
+    "id": np.zeros(length, dtype=int),
     "file_path": [""] * length,
     "human_count": np.zeros(length, dtype=int),
     "living_creature_count": np.zeros(length, dtype=int),
