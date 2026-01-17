@@ -1,105 +1,109 @@
-Thermal Rescue Vision: Tunnel & Debris Operations 🚁🌡️
+Thermal Rescue Vision: Autonomous Navigation in Low-Visibility Environments 🚁🌡️
 
-Autonomous rescue vision system designed for zero-visibility environments.
+Deep learning-based computer vision system for thermal object detection in rescue robotics.
 
-📖 Mission Profile: The "Dark Tunnel" Scenario
+📖 Operational Context
 
-This project acts as the sensory cortex for a rescue robot operating in Tunnel-Like Environments (collapsed mines, smoke-filled corridors, subway wreckage). In these conditions, standard RGB cameras are useless due to lack of light, and LiDAR struggles with smoke particulate. Thermal Imagery (FLIR) is the only viable modality.
+This project serves as the visual processing unit for autonomous rescue robots operating in confined, low-visibility environments (e.g., collapsed mines, smoke-filled corridors, subway wreckage). In such scenarios, standard RGB sensors are rendered ineffective by poor lighting, and LiDAR performance degrades due to particulate matter. Radiometric Thermal Imagery (FLIR) is utilized as the primary sensing modality.
 
-🛑 The Operational Doctrine
+🛑 Optimization Strategy
 
-Unlike standard object detection, a Rescue Robot has two conflicting objectives. We have engineered our model to respect a hierarchical "Cost of Error":
+Unlike general-purpose object detection, rescue robotics requires a tailored cost function to address specific failure modes. We implement a hierarchical error minimization strategy:
 
-1. Human Count → Doctrine: "Relative Precision"
+1. Human Count: Logarithmic Error Minimization
 
-The Logic: "Missing 1 person in a crowd of 100 is acceptable; missing 1 person in a group of 4 is a failure."
+Objective: Minimize relative error rather than absolute error to maintain high sensitivity in low-density scenarios.
 
-The Solution: We utilize MSLE (Mean Squared Logarithmic Error). This penalizes errors based on ratio rather than absolute difference. It forces the model to be hyper-accurate with small groups (readiness) while tolerating statistical noise in large crowds.
+Methodology: We utilize MSLE (Mean Squared Logarithmic Error). This metric penalizes prediction errors based on ratio. This ensures the model maintains high precision when detecting small groups (critical for rescue prioritization) while tolerating acceptable statistical variance in high-density crowds.
 
-2. Living Things → Doctrine: "The Zero-to-One Criticality"
+2. Living Entities: Asymmetric Recall Prioritization
 
-The Logic: "Predicting 0 when there is 1 is a fatal error (Abandonment). Predicting 1 when there is 0 is a logistical error (Search Fatigue)."
+Objective: Eliminate False Negatives (Type II errors) in binary existence classification.
 
-The Solution: An Asymmetric "Existence" Loss. The model faces a massive penalty (100x) for predicting "Zero" on an inhabited frame (The "Dangerous Gambit"), but is trained with standard precision elsewhere to prevent "Search Fatigue" (False Positives on empty frames).
+Methodology: An Asymmetric "Existence" Loss. The cost function applies a significant penalty weight (100x) specifically to False Negatives (predicting zero occupancy when a target is present). This bias ensures the system favors recall over precision for the binary "Safe/Unsafe" classification.
 
-Outcome: The robot is terrified of missing a single life form but disciplined enough not to brake for every hot rock.
+Outcome: The system minimizes the risk of overlooking survivors (Critical Failure) while maintaining a manageable false-positive rate.
 
-⚙️ System Architecture: The "Bold" Adaptation
+⚙️ System Architecture: Modified ResNet50
 
-We utilize a ResNet50 backbone, surgically modified to accept single-channel Grayscale inputs (Thermal intensity). The network is trained as a Multi-Task Regressor using a novel "Zero-Backbone" strategy.
+The core architecture is a ResNet50 backbone, structurally adapted to process single-channel Grayscale inputs (Thermal intensity). The network operates as a Multi-Task Regressor using a Zero-Gamma Initialization strategy.
 
-1. The Model Surgery
+1. Structural Modifications
 
-Input (Thermal Eye): Conv2d(3, 64) $\rightarrow$ Conv2d(1, 64). Adapts the network to ingest raw thermal intensity tensors directly.
+Input Layer Adaptation: Conv2d(3, 64) $\rightarrow$ Conv2d(1, 64).
 
-Output (Dual Head): Linear(2048, 1000) $\rightarrow$ Linear(2048, 2).
+Purpose: Direct ingestion of raw thermal intensity tensors without artificial RGB upsampling.
 
-Head A (Human Count): Optimized for Logarithmic Precision.
+Dual-Head Output: Linear(2048, 1000) $\rightarrow$ Linear(2048, 2).
 
-Head B (Living Existence): Optimized for Zero-False-Negative Recall.
+Head A: Human Count Regression (Log-Space).
 
-2. Identity-Driven Initialization ("The Zero-Backbone")
+Head B: Living Entity Existence (Binary-Weighted).
 
-Standard weight initialization introduces random noise. In thermal rescue scenarios, this noise can "filter out" faint heat signatures before the model learns to recognize them. We employ a Signal-Wire Initialization strategy to prevent this data fading.
+2. Initialization Protocol (Zero-Gamma)
 
-Input Layer (Conv1): Weights = 1.0
+Standard weight initialization introduces random noise, which can obscure faint thermal signatures during early training epochs. We employ a deterministic Signal-Preservation Strategy:
 
-Theory: Unbiased Intensity Accumulation.
+Input Layer (Conv1) Weights $\approx$ 1.0:
 
-Mechanism: We initialize the first layer as a pure intensity accumulator.
+Mechanism: Unbiased Intensity Accumulation.
 
-Critical Logic: Random weights act as a filter. By using 1.0, we force the layer to pass the entire thermal energy budget into the backbone. This ensures that faint "Living Thing" signals are not inadvertently discarded by a bad random initialization before the network converges.
+Purpose: Forces the initial layer to act as a pass-through filter, ensuring the entire thermal energy budget reaches the backbone without attenuation.
 
-Backbone Layers: Weights = 0.0
+Residual Branch Suppression (Weights $\approx$ 0.0):
 
-Theory: The Silent Highway.
+Mechanism: We initialize the scale parameters ($\gamma$) of the final Batch Normalization layer in each residual block to zero.
 
-Mechanism: By zeroing the convolution weights ($F(x) \to 0$), the residual blocks act as Identity Mappings ($y \to x$).
+Theory: This effectively sets the residual function $F(x) = 0$, reducing the block to an Identity Mapping ($y = x$).
 
-Critical Logic: This collapses the deep network into a linear path initially. It allows the raw signal from the Input Layer to reach the classifiers without distortion, solving the "Vanishing Gradient" problem for critical, low-contrast thermal targets.
+Purpose: This creates a "Skeptical Baseline," forcing the model output to [0, 0] initially. The network only deviates from this baseline when the gradient signal (driven by the asymmetric loss) is sufficiently strong, thereby reducing random false positives during the initial convergence phase.
 
-Output Layer (Head): Weights = 0.0
+💾 State Management & Reproducibility
 
-Theory: Null Hypothesis vs. Paranoid Loss.
+The project implements a hardware-agnostic serialization system designed to ensure reproducibility and seamless transition between training (RTX 3060) and deployment (RTX 2050) environments.
 
-Mechanism: The model defaults to predicting [0, 0] (Empty Road).
+1. Checkpoint Separation
 
-Critical Logic: Our Asymmetric Loss is extremely generous (it rewards finding things). If we initialized randomly, the model might hallucinate obstacles to satisfy this loss. By forcing the initial state to "Zero," we create a Skeptical Baseline. The model only predicts "Danger" when the gradient signal (driven by the 100x penalty on actual misses) is strong enough to overcome this zero-inertia. This counter-balances the False Positives inherent in safety-critical loss functions.
+We distinguish between training states and deployment artifacts:
 
-📉 Technical Implementation: The Loss Math
+Training Checkpoints (training/): Serializes Model Weights, Optimizer State, Epoch index, and Loss metrics. This enables precise resumption of the optimization process after interruptions.
 
-The "Operational Doctrine" is enforced mathematically via a custom composite loss function.
+Deployment Artifacts (deployment/): Serializes only the optimized model weights (state_dict). This minimizes storage footprint for the target embedded hardware.
 
-Human Count Math (MSLE)
+2. Device-Agnostic Loading
+
+The loading mechanism implements a "CPU Layover" strategy (map_location='cpu').
+
+Problem: PyTorch checkpoints store device affinity (e.g., cuda:0), causing runtime errors when loaded on devices with different GPU configurations.
+
+Solution: The class automatically remaps tensors to the CPU during deserialization before moving them to the local accelerator, ensuring portability across heterogeneous hardware.
+
+📉 Mathematical Formulation
+
+Loss Functions
+
+The operational requirements are enforced via a custom composite loss function.
+
+Human Count (MSLE):
 
 $$L_{human} = \text{mean}((\log(1+y) - \log(1+\hat{y}))^2) \times 100$$
 
-Why: Logarithms compress large errors but magnify small errors relative to the target. This aligns perfectly with the "Relative Precision" doctrine.
+Living Entity (Asymmetric Weighted Loss):
 
-Living Creature Math (Asymmetric Safety)
-
-$$\text{Coeff} = \begin{cases} 
-100.0 & \text{if } Target > 0 \land Prediction \approx 0 \text{ (Critical Miss)} \\
+$$\text{Coeff} = \begin{cases}
+100.0 & \text{if } Target \> 0 \land Prediction \approx 0 \text{ (Critical Miss)} \\
 1.0 & \text{otherwise}
 \end{cases}$$
 
 $$L_{safety} = \text{mean}(\text{Coeff} \times (\text{LogDiff})^2)$$
 
-Why: The dynamic coefficient acts as a "Safety Gate," forcing the optimizer to prioritize Recall over Precision specifically for the "Zero-to-One" transition.
+Adaptive Memory Pipeline
 
-💾 Adaptive Memory Management
+To support high-resolution thermal imagery ($640 \times 512$) across varying hardware tiers:
 
-To handle high-resolution thermal images ($640 \times 512$) required to spot small limbs in large tunnels, we engineered a custom memory pipeline in data_handling.py:
+High-Throughput Mode (RTX 3060): Pre-loads batches (Size 8) to VRAM, utilizing Gradient Accumulation to simulate larger effective batch sizes.
 
-Hybrid RAM/VRAM Storage:
-
-Laptop Mode (RTX 2050): Stores data in System RAM, streams to GPU just-in-time. Prevents OOM on 4GB cards.
-
-PC Mode (RTX 3060): Pre-loads data to VRAM for maximum throughput.
-
-Data Quantization: Images stored as uint8 to maximize RAM density (4x compression), expanded to float32 Just-In-Time.
-
-Safety Wrapper: Custom DataLoader wrapper (data_set_server) enforces thread safety to prevent memory forking crashes on Windows/Linux boundaries.
+Memory-Constrained Mode (RTX 2050): Utilizes reduced batch sizes (Size 2) with Just-In-Time (JIT) RAM streaming to prevent Out-Of-Memory (OOM) errors.
 
 📂 Project Structure
 
@@ -116,53 +120,61 @@ PFA2026/
 └── requirements.txt
 
 
-🚀 Quick Start
+🚀 Usage Guide
 
 1. Environment Setup
 
 git clone [https://github.com/youssef-Majdhoub/Thermal-Rescue-Vision.git](https://github.com/youssef-Majdhoub/Thermal-Rescue-Vision.git)
 cd Thermal-Rescue-Vision
-python setup.py
+pip install -r requirements.txt
 
 
-2. Verify Data Pipeline
 
-Check if your hardware (Laptop vs PC) is detected correctly. Note the import path change due to project structure:
+2. Training
 
-from training_scripts.data_handling import data_set_manager
+The system creates hardware-specific execution profiles. To initiate training:
 
-# Initialize (False for Laptop, True for PC)
-dataset = data_set_manager(
-    csv_file="./archive/FLIR_ADAS_v2/labels_thermal_train.csv",
-    to_GPU=False 
-)
-print(f"Loaded {len(dataset)} thermal frames.")
+from resnet50_adapted import resnet50_adapted
+import os
 
+# Initialize the model (Mode 0 = Training)
+# Directory structure for checkpoints is automatically generated
+model = resnet50_adapted(home_path=os.getcwd(), mode=0)
 
-3. Start Training
-
-from training_scripts.training_script import training_manager
-
-# Start the training loop
-# Modes: "RTX3060", "RTX2050", "CPU"
-training_manager.train(mode="RTX3060", epochs=10)
+# Execute training loop
+# Profiles: "RTX3060" (Batch 8), "RTX2050" (Batch 2), "CPU" (Batch 4)
+model.train(epochs=10, mode="RTX3060")
 
 
-🛠️ Tech Stack
 
-Core: Python 3.12, PyTorch 2.6
+3. Inference / Deployment
 
-Sensor: FLIR Radiometric Thermal
+To load the optimized weights for deployment:
 
-Hardware Acceleration: CUDA 12.4 (Ampere Architecture)
+# Mode 1 = Deployment
+# Automatically scans 'deployment/model_data/' for the optimal weight file
+model = resnet50_adapted(home_path=os.getcwd(), mode=1)
 
-Deployment: Optimized for NVIDIA Jetson / RTX Laptop Roaming
+# The model is initialized and ready for inference
+# model.model.eval() 
 
-👥 The Team (ENSATB PFA 2026)
 
-This project is a collaborative effort by engineering students at ENSATB, combining expertise in software, hardware, and robotics:
 
-Youssef Majdhoub – Computer Vision & AI
+🛠️ Technology Stack
+
+Core Framework: Python 3.12, PyTorch 2.6
+
+Sensing Modality: FLIR Radiometric Thermal
+
+Acceleration: CUDA 12.4 (Ampere Architecture)
+
+Target Hardware: NVIDIA Jetson / RTX Laptop
+
+👥 Project Team (ENSATB PFA 2026)
+
+This project is developed by engineering students at the National School of Advanced Sciences and Technologies of Borj Cedria (ENSATB):
+
+Youssef Majdhoub – Computer Vision & AI Architecture
 
 Oussama Amar – Robotics Integration & Hardware
 
@@ -171,4 +183,4 @@ Amin Saadaoui – Embedded Systems & Control
 Academic Supervision:
 Pr. Mme Emna Laaridhi – Department of Computer Engineering, ENSATB
 
-📜 License: Project developed for academic purposes at ENSATB.
+License: Developed for academic purposes at ENSATB.
