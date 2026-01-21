@@ -361,10 +361,57 @@ class resnet50_adapted:
                             outputs[i, 1], targets[i, 1], device
                         ).item(),
                     )
+            juging_dict["average_loss_humans_count"] = loss_humans_total / n
+            juging_dict["average_loss_living_creatures_count"] = (
+                loss_living_creatures_total / n
+            )
         torch.save(
             juging_dict,
             os.path.join(evaluation_path, f"evaluation_data_version{epoch}.pth"),
         )
+
+    def remove_model(self, epoch):
+        training_path = os.path.join(self.home_path, "training", "model_data")
+        aux_path = os.path.join(self.home_path, "training", "auxiliary_data")
+        model_file = os.path.join(training_path, f"model_version{epoch}.pth")
+        aux_file = os.path.join(aux_path, f"aux_data_version{epoch}.pth")
+        os.remove(model_file)
+        os.remove(aux_file)
+
+    def choose_models(self):
+        training_path = os.path.join(self.home_path, "training", "model_data")
+        aux_path = os.path.join(self.home_path, "training", "auxiliary_data")
+        eval_path = os.path.join(self.home_path, "evaluation")
+        possible_files = os.listdir(eval_path)
+        indexes = [
+            (int(f.replace("evaluation_data_version", "").replace(".pth", "")), f)
+            for f in possible_files
+        ]
+        data = {}
+        for index, path in indexes:
+            data[index] = torch.load(os.path.join(eval_path, path))
+        scores = {}
+        for index in data:
+            scores[index] = (
+                data[index]["True_Positives_Humans"]
+                + data[index]["True_Negatives_Humans"]
+                - data[index]["False_Positives_Humans"]
+                - data[index]["False_Negatives_Humans"]
+                + data[index]["True_Positives_Living_Creatures"]
+                + data[index]["True_Negatives_Living_Creatures"]
+                - data[index]["False_Positives_Living_Creatures"]
+                - data[index]["False_Negatives_Living_Creatures"] * 10
+                - data[index]["min_loss_humans_count"]
+                - data[index]["min_loss_living_creatures_count"]
+                - data[index]["average_loss_humans_count"]
+                - data[index]["average_loss_living_creatures_count"] * 0.5
+                - data[index]["max_loss_humans_count"]
+                - data[index]["max_loss_living_creatures_count"] * 0.5
+            )
+        best_indexes = sorted(list(scores.keys()), key=scores.get, reverse=True)[:10]
+        for index in data:
+            if index not in best_indexes:
+                self.remove_model(index)
 
 
 if __name__ == "__main__":
