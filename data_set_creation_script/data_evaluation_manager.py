@@ -25,7 +25,7 @@ ID_MAPPING = {
 }
 annotation_path = os.path.abspath("./archive/FLIR_ADAS_v2/images_thermal_val/coco.json")
 data_set_path = os.path.abspath(
-    "./evaluation_set/human_and_living_creatures_count_data_set.csv"
+    "./evaluation_set/human_and_living_creatures_count_evaluation_set.csv"
 )
 with open(annotation_path) as f:
     annotation = json.load(f)
