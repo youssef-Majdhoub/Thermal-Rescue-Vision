@@ -72,14 +72,14 @@ def main():
         print("   (This involves a large download for PyTorch. Please be patient...)")
 
         try:
-            # We add --index-url to force NVIDIA CUDA version
+            # We add --extra-index-url to force NVIDIA CUDA version
             subprocess.check_call(
                 [
                     pip_exe,
                     "install",
                     "-r",
                     REQUIREMENTS_FILE,
-                    "--index-url",
+                    "--extra-index-url",
                     TORCH_INDEX_URL,
                 ]
             )
