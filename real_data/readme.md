@@ -25,3 +25,13 @@ We utilized **Dataset Ninja**, an independent dataset auditing tool, to view the
 #### 3. Code & Visual Inspection
 We examined the `utilities.py` script from the original authors' toolkit. The visualization function maps Class ID `1` to RGB `(0,0,255)` (Red in BGR) and Class ID `4` to `(255,255,255)` (White).
 * **Correlation:** Fire extinguishers are visually red. In thermal imaging, the "Survivor" (heated dummy) is the brightest (white) object. This visual confirmation aligns perfectly with the academic and statistical evidence.
+
+usefull Links:
+
+PST900: RGB-Thermal Calibration, Dataset and Segmentation Network (ArXiv)
+
+Official PST900 GitHub Repository
+
+Dataset Ninja Audit (PST900)
+
+PEAFusion Benchmark Repository
