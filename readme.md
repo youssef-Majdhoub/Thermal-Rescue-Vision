@@ -10,118 +10,115 @@ In such scenarios, standard RGB sensors are rendered ineffective by poor lightin
 
 📊 Datasets & Training Data
 
-To ensure robust detection in diverse environments, this project utilizes a tiered data strategy.
+To ensure robust detection in diverse environments, this project utilizes a tiered data strategy, moving from general recognition to specific deployment scenarios.
 
-1. Primary Baseline: FLIR Thermal Starter Dataset (ADAS)
+1. General Recognition: FLIR Thermal Starter Dataset (ADAS)
 
-The system's foundational human detection capabilities are trained on the FLIR ADAS (Advanced Driver-Assistance Systems) Dataset.
+Role: Primary Baseline.
 
-Resolution: 640×512 (Matches our sensor specifications).
+Objective: Foundational human detection (walking/standing).
 
-Role: Provides 10,000+ labeled thermal frames of pedestrians in "standard" vertical postures (walking/standing).
+Resolution: 640×512 (Matches sensor specifications).
 
-Limitation: This dataset lacks "distress" postures (lying prone, falling, crawling).
+Volume: 10,000+ labeled thermal frames.
 
-2. Distress Data (In Progress)
+2. Pose Robustness: TSF (Thermal Simulated Fall)
 
-To address the ADAS limitations, we are currently integrating specific fall-detection datasets (including TSF - Thermal Simulated Fall) to train the Asymmetric Recall branch. This allows the model to distinguish between a standing rescuer and a prone survivor.
+Role: Asymmetric Recall & Posture Generalization.
+
+Objective: To distinguish between a "standing rescuer" and a "prone survivor."
+
+Focus: Introduces "Distress" postures (lying prone, crawling, falling) which are absent in standard ADAS datasets. This is critical for the "Living Entities" branch of the network.
+
+3. Deployment Scenario: PST900 RGBT Dataset
+
+Role: Operational Environment Fine-Tuning.
+
+Objective: Domain adaptation for the final deployment environment.
+
+Relevance: Unlike ADAS (outdoors), PST900 focuses specifically on subterranean and confined environments (tunnels, mines, caves).
+
+Processing: Semantic segmentation masks are converted into binary "Existence" targets for our regressor.
+
+Source: PST900 Repository.
 
 🛑 Optimization Strategy
 
-Unlike general-purpose object detection, rescue robotics requires a tailored cost function to address specific failure modes. We implement a hierarchical error minimization strategy:
+Rescue robotics requires a tailored cost function to address specific failure modes. We implement a hierarchical error minimization strategy:
 
-1. Human Count: Logarithmic Error Minimization
+1. Human Count: Logarithmic Error Minimization (MSLE)
 
-Objective: Minimize relative error rather than absolute error to maintain high sensitivity in low-density scenarios.
-
-Methodology: We utilize MSLE (Mean Squared Logarithmic Error). This metric penalizes prediction errors based on ratio. This ensures the model maintains high precision when detecting small groups (critical for rescue prioritization) while tolerating acceptable statistical variance in high-density crowds.
+Objective: Minimize relative error. This ensures high precision for small groups (critical for prioritization) while tolerating variance in high-density crowds.
 
 2. Living Entities: Asymmetric Recall Prioritization
 
-Objective: Eliminate False Negatives (Type II errors) in binary existence classification.
+Objective: Zero False Negatives (Type II errors).
 
-Methodology: An Asymmetric "Existence" Loss. The cost function applies a significant penalty weight (100x) specifically to False Negatives (predicting zero occupancy when a target is present).
+Methodology: A weighted penalty (100x) is applied specifically to missing a target.
 
-Outcome: The system minimizes the risk of overlooking survivors (Critical Failure) while maintaining a manageable false-positive rate.
+Outcome: The system minimizes the risk of overlooking a survivor (Critical Failure).
 
-⚙️ System Architecture: Modified ResNet50
+🧪 Automated Hyperparameter Search
 
-The core architecture is a ResNet50 backbone, structurally adapted to process single-channel Grayscale inputs (Thermal intensity). The network operates as a Multi-Task Regressor using a Zero-Gamma Initialization strategy.
+To scientifically determine the optimal configuration for deployment, the project now includes an Automated Experimentation Engine.
 
-1. Structural Modifications
+Instead of manual trial-and-error, the Experimentation class performs a structured Grid Search across:
 
-Input Layer Adaptation: Conv2d(3, 64) $\rightarrow$ Conv2d(1, 64).
+Batch Sizes: Balancing VRAM usage vs. Gradient stability.
 
-Purpose: Direct ingestion of raw thermal intensity tensors without artificial RGB upsampling.
+Optimizers: Comparing convergence of Adam vs. SGD vs. RMSProp.
 
-Dual-Head Output: Linear(2048, 1000) $\rightarrow$ Linear(2048, 2).
+Learning Rates: Finding the "Goldilocks zone" for Zero-Gamma convergence.
 
-Head A: Human Count Regression (Log-Space).
+State Persistence & Crash Recovery
 
-Head B: Living Entity Existence (Binary-Weighted).
+The engine features a Transactional State Manager (experiment_state.pt).
 
-2. Initialization Protocol (Zero-Gamma)
+Immutability: The experiment plan (Optimizers/LRs) is "sealed" at start-up. Code changes during a run are ignored to ensure scientific consistency.
 
-Standard weight initialization introduces random noise, which can obscure faint thermal signatures during early training epochs. We employ a deterministic Signal-Preservation Strategy:
+Crash Recovery: If the training rig (RTX 3060) loses power, the script automatically detects the state file and resumes exactly where it left off, skipping completed permutations.
 
-Input Layer (Conv1) Weights $\approx$ 1.0:
+⚙️ System Architecture
 
-Mechanism: Unbiased Intensity Accumulation.
+Experimental Phase 1: Modified ResNet50
 
-Purpose: Forces the initial layer to act as a pass-through filter, ensuring the entire thermal energy budget reaches the backbone without attenuation.
+We are currently utilizing ResNet50 as our initial baseline architecture to establish performance benchmarks. Future iterations will evaluate lighter, embedded-optimized backbones (e.g., MobileNet, EfficientNet) and Transformers to optimize the Accuracy-Latency trade-off on edge hardware.
 
-Residual Branch Suppression (Weights $\approx$ 0.0):
+The current backbone is structurally adapted for single-channel thermal input with a Zero-Gamma Initialization strategy to prevent gradient explosion during the initial "cold start."
 
-Mechanism: We initialize the scale parameters ($\gamma$) of the final Batch Normalization layer in each residual block to zero.
+Input: Conv2d(1, 64) for raw thermal tensors (Grayscale).
 
-Theory: This effectively sets the residual function $F(x) = 0$, reducing the block to an Identity Mapping ($y = x$).
+Output: A Dual-Head Regression Layer yielding 2 Scalar Values:
 
-Purpose: This creates a "Skeptical Baseline," forcing the model output to [0, 0] initially. The network only deviates from this baseline when the gradient signal is sufficiently strong.
+Human Count: The estimated number of standard standing/walking pedestrians (Rescuers/Bystanders).
 
-📉 Mathematical Formulation
+Living Things Count: The estimated total number of living entities, specifically capturing prone, crawling, or obscured survivors that standard detection might miss.
 
-The operational requirements are enforced via a custom composite loss function.
-
-Human Count (MSLE):
-
-$$L_{\text{human}} = \text{mean}((\log(1+y) - \log(1+\hat{y}))^2) \times 100$$
-
-Living Entity (Asymmetric Weighted Loss):
-
-$$\text{Coeff} = \begin{cases}
-100.0 & \text{if } \quad \text{Target} > 0 \land \text{Prediction} \approx 0 \quad (\text{Critical Miss}) \\
-1.0 & \text{otherwise}
-\end{cases}$$
-
-$$L_{\text{safety}} = \text{mean}(\text{Coeff} \times (\text{LogDiff})^2)$$
-
-💾 State Management & Reproducibility
-
-The project implements a hardware-agnostic serialization system designed to ensure reproducibility and seamless transition between training (RTX 3060) and deployment (RTX 2050/Jetson) environments.
-
-Checkpoint Separation:
-
-training/: Serializes Model Weights, Optimizer State, Epoch index, and Loss metrics.
-
-deployment/: Serializes only the optimized model weights (state_dict).
-
-Device-Agnostic Loading:
-
-Implements a "CPU Layover" strategy (map_location='cpu') to prevent CUDA device affinity errors when moving between heterogeneous hardware.
+Initialization: Residual branches initialized to zero ($\gamma=0$), forcing the network to act as an Identity Map initially.
 
 📂 Project Structure
 
 PFA2026/
-├── archive/                     # Dataset Storage (FLIR ADAS / TSF)
+├── archive/                     # Raw Dataset Storage
+├── data_set/                    # Processed Datasets
 ├── data_set_creation_script/    # Data Prep Tools
+│   ├── data_evaluation_manager.py
 │   ├── data_integrity_check.py
 │   └── data_set_manager.py
+├── evaluation_set/              # Validation Splits
+├── falling humans/              # TSF / Pose Data
+├── real_data/                   # Deployment Data (PST900)
+│   ├── PST900_RGBT_Dataset/
+│   ├── PST900_RGBT_Dataset.zip
+│   └── readme.md
 ├── training_scripts/            # Core Logic
 │   ├── data_handling.py         # Data Pipeline (Loader & Server)
-│   └── training_script.py       # Main Entry Point (Model & Loop)
+│   ├── expeimentation.py        # Automated Grid Search Engine
+│   └── training_script.py       # ResNet50 Class & Logic
 ├── .gitignore
 ├── readme.md
-└── requirements.txt
+├── requirements.txt
+└── setup.py
 
 
 🚀 Usage Guide
@@ -133,31 +130,46 @@ cd Thermal-Rescue-Vision
 pip install -r requirements.txt
 
 
-2. Training
 
-The system creates hardware-specific execution profiles.
 
-from resnet50_adapted import resnet50_adapted
+2. Running Experiments (Grid Search)
+
+To launch the automated research engine:
+
+from training_scripts.expeimentation import Experimentation
+import torch
 import os
 
-# Initialize the model (Mode 0 = Training)
-model = resnet50_adapted(home_path=os.getcwd(), mode=0)
+# Define the Search Space
+experiment = Experimentation(
+    model_path=os.getcwd(),
+    learning_rates=[0.1,0.01,0.001, 0.0001],
+    optimizers=[torch.optim.AdamW,torch.optim.Adam, torch.optim.SGD],
+    batch_sizes=[8, 16],
+    epoch_per_experiment=20,
+    device="cuda"
+)
 
-# Execute training loop
-# Profiles: "RTX3060" (Batch 8), "RTX2050" (Batch 2), "CPU" (Batch 4)
-model.train(epochs=10, mode="RTX3060")
+# Launch (Auto-resumes if interrupted)
+experiment.run_experiments(mode="RTX3060")
+
+
 
 
 3. Inference / Deployment
 
-To load the optimized weights for deployment on edge hardware:
+To load the best-performing model for edge deployment:
 
-# Mode 1 = Deployment
-# Automatically scans 'deployment/model_data/' for the optimal weight file
+from training_scripts.training_script import resnet50_adapted
+import os
+
+# Mode 1 = Deployment (Loads from deployment/ folder)
 model = resnet50_adapted(home_path=os.getcwd(), mode=1)
 
-# The model is initialized and ready for inference
+# Ready for inference on Jetson/RTX 2050
 model.model.eval() 
+
+
 
 
 🛠️ Technology Stack
@@ -168,11 +180,11 @@ Sensing Modality: FLIR Radiometric Thermal
 
 Acceleration: CUDA 12.4 (Ampere Architecture)
 
-Target Hardware: NVIDIA Jetson / RTX Laptop
+Target Hardware: NVIDIA Jetson Orin / RTX Laptop
 
 👥 Project Team (ENSATB PFA 2026)
 
-This project is developed by engineering students at the National School of Advanced Sciences and Technologies of Borj Cedria (ENSTAB):
+Developed by engineering students at the National School of Advanced Sciences and Technologies of Borj Cedria (ENSTAB):
 
 Youssef Majdhoub – Computer Vision & AI Architecture
 
