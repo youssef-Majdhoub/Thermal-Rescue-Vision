@@ -156,7 +156,7 @@ class resnet50_adapted:
         checkpoint = torch.load(aux_file, map_location=device)
         return checkpoint["optimizer_state_dict"]
 
-    def train(self, epochs=10, mode="RTX3060"):
+    def train(self, epochs=10, mode="RTX3060", optimizer=None):
         if mode == "RTX3060":
             DataSet, DataLoder = RTX3060_data_loader()
             device = torch.device("cuda")
@@ -171,7 +171,9 @@ class resnet50_adapted:
             return
         self.model.to(device)
         self.device = device
-        if self.load_it:
+        if optimizer is not None:
+            print("Using provided optimizer for training.")
+        elif self.load_it:
             print("Resuming training from last saved checkpoint.")
             optimizer_state_dict = self.load_training_checkpoint(device)
             optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
