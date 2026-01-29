@@ -156,15 +156,24 @@ class resnet50_adapted:
         checkpoint = torch.load(aux_file, map_location=device)
         return checkpoint["optimizer_state_dict"]
 
-    def train(self, epochs=10, mode="RTX3060", optimizer=None):
+    def train(self, epochs=10, mode="RTX3060", batch_size=None, optimizer=None):
         if mode == "RTX3060":
-            DataSet, DataLoder = RTX3060_data_loader()
+            if batch_size is None:
+                DataSet, DataLoder = RTX3060_data_loader()
+            else:
+                DataSet, DataLoder = RTX3060_data_loader(batch_size=batch_size)
             device = torch.device("cuda")
         elif mode == "RTX2050":
-            DataSet, DataLoder = RTX2050_data_loader()
+            if batch_size is None:
+                DataSet, DataLoder = RTX2050_data_loader()
+            else:
+                DataSet, DataLoder = RTX2050_data_loader(batch_size=batch_size)
             device = torch.device("cuda")
         else:
-            DataSet, DataLoder = CPU_data_loader()
+            if batch_size is None:
+                DataSet, DataLoder = CPU_data_loader()
+            else:
+                DataSet, DataLoder = CPU_data_loader(batch_size=batch_size)
             device = torch.device("cpu")
         if self.mode != 0:
             print("Model is not in training mode.")
