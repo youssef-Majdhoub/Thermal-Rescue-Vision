@@ -132,23 +132,16 @@ pip install -r requirements.txt
 
 
 
-2. Running Experiments (Grid Search)
+2. Automated Experimentation & Reporting Pipeline
+To scientifically determine the optimal configuration, the project utilizes a custom Experimentation Engine. This is not just a training loop; it is a full research pipeline that automates:
 
-To launch the automated research engine:
+-Grid Search: Iterates through every combination of batch size, optimizer, and learning rate.
 
-from training_scripts.expeimentation import Experimentation
-import torch
-import os
+-Performance Profiling: Measures execution time per experiment (time.perf_counter) to identify the most computationally efficient configuration.
 
-# Define the Search Space
-experiment = Experimentation(
-    model_path=os.getcwd(),
-    learning_rates=[0.1,0.01,0.001, 0.0001],
-    optimizers=[torch.optim.AdamW,torch.optim.Adam, torch.optim.SGD],
-    batch_sizes=[8, 16],
-    epoch_per_experiment=20,
-    device="cuda"
-)
+-Crash Recovery: Automatically detects existing state files (experiment_state.pt) and resumes exactly where it left off.
+
+-Automated Analytics: Generates a full Markdown report with comparative plots for accuracy, loss, and speed.
 
 # Launch (Auto-resumes if interrupted)
 experiment.run_experiments(mode="RTX3060")
