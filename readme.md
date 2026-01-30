@@ -54,7 +54,7 @@ Objective: Minimize relative error. This ensures high precision for small groups
 
 Objective: Zero False Negatives (Type II errors).
 
-Methodology: A weighted penalty (100x) is applied specifically to missing a target.
+Methodology: A weighted penalty (10x) is applied specifically to missing a target.
 
 Outcome: The system minimizes the risk of overlooking a survivor (Critical Failure).
 
