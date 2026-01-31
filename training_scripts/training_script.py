@@ -3,6 +3,7 @@ from data_handling import data_set_manager, data_set_server
 from torchvision import models
 from torchinfo import summary
 import os
+from tqdm import tqdm
 
 training_csv_file = "./data_set/human_and_living_creatures_count_data_set.csv"
 evaluation_csv_file = (
@@ -189,7 +190,9 @@ class resnet50_adapted:
             optimizer.load_state_dict(optimizer_state_dict)
         else:
             optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001)
-        for epoch in range(epochs):
+        for epoch in tqdm(
+            range(self.epoch, self.epoch + epochs), desc="Training Progress"
+        ):
             self.model.train()
             running_loss = 0.0
             for inputs, targets in DataLoder:
