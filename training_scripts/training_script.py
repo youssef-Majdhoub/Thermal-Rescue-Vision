@@ -280,17 +280,17 @@ class resnet50_adapted:
     def judge_model(self, epoch, mode="RTX3060"):
         if mode == "RTX3060":
             DataSet, DataLoder = RTX3060_data_loader(
-                path=global_eval_path, csv_file=evaluation_csv_file
+                path=global_eval_path, csv_file=evaluation_csv_file, batch_size=160
             )
             device = torch.device("cuda")
         elif mode == "RTX2050":
             DataSet, DataLoder = RTX2050_data_loader(
-                path=global_eval_path, csv_file=evaluation_csv_file
+                path=global_eval_path, csv_file=evaluation_csv_file, batch_size=80
             )
             device = torch.device("cuda")
         else:
             DataSet, DataLoder = CPU_data_loader(
-                path=global_eval_path, csv_file=evaluation_csv_file
+                path=global_eval_path, csv_file=evaluation_csv_file, batch_size=40
             )
             device = torch.device("cpu")
         evaluation_path = os.path.join(self.home_path, "evaluation")
@@ -298,7 +298,6 @@ class resnet50_adapted:
             os.makedirs(evaluation_path)
         self.model.to(device)
         # speed up evaluation by increasing batch size since no autograd is used
-        DataLoder.batch_size *= 10
         juging_dict = {
             "True_Positives_Humans": 0,
             "True_Negatives_Humans": 0,
