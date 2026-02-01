@@ -388,8 +388,10 @@ class resnet50_adapted:
         aux_path = os.path.join(self.home_path, "training", "auxiliary_data")
         model_file = os.path.join(training_path, f"model_version{epoch}.pth")
         aux_file = os.path.join(aux_path, f"aux_data_version{epoch}.pth")
-        os.remove(model_file)
-        os.remove(aux_file)
+        if os.path.exists(model_file):
+            os.remove(model_file)
+        if os.path.exists(aux_file):
+            os.remove(aux_file)
 
     def choose_models(self):
         training_path = os.path.join(self.home_path, "training", "model_data")

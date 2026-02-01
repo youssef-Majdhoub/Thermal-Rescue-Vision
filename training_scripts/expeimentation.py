@@ -85,7 +85,9 @@ class Experimentation:
     def load(self):
         self.dummy.load_model()
         save_path = os.path.join(self.model_path, "experiments")
-        data = torch.load(os.path.join(save_path, "experiment_state.pt"))
+        data = torch.load(
+            os.path.join(save_path, "experiment_state.pt"), weights_only=False
+        )
         self.learning_rates = data["learning_rates"]
         self.optimizers = data["optimizers"]
         self.batch_sizes = data["batch_sizes"]
@@ -95,6 +97,15 @@ class Experimentation:
         self.size_dex = data["size_dex"]
         self.lr_dex = data["lr_dex"]
         self.running_time_per_experiment = data["running_time_per_experiment"]
+        current_epoch = (
+            self.size_dex
+            * len(self.optimizers)
+            * len(self.learning_rates)
+            * self.epoch_per_experiment
+            + self.opti_dex * len(self.learning_rates) * self.epoch_per_experiment
+            + self.lr_dex * self.epoch_per_experiment
+        )
+        self.dummy.epoch = current_epoch
 
     def create_df(self):
         eval_path = os.path.join(self.model_path, "evaluation")
