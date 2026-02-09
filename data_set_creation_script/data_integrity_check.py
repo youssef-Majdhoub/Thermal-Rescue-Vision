@@ -5,9 +5,10 @@ from collections import Counter
 from tqdm import tqdm
 
 
-def get_media_sizes():
-    # 1. Ask user for the path at runtime
-    directory = input("Paste the folder path to scan: ").strip().replace('"', "")
+def get_media_sizes(directory=None):
+    # 1. Ask user for the path at runtime if not provided
+    if directory is None:
+        directory = input("Paste the folder path to scan: ").strip().replace('"', "")
 
     if not os.path.exists(directory):
         print("❌ Error: That path does not exist.")
@@ -80,5 +81,11 @@ def get_media_sizes():
         print("\n🎥 VIDEOS: None found.")
 
 
+data_paths = [
+    "C:/Users/medbe/OneDrive/Bureau/PFA2026/falling humans/uncommpressed_data/Fall1",
+    "C:/Users/medbe/OneDrive/Bureau/PFA2026/archive/FLIR_ADAS_v2/images_thermal_train/data",
+    "C:/Users/medbe/OneDrive/Bureau/PFA2026/real_data/PST900_RGBT_Dataset/train/thermal",
+]
 if __name__ == "__main__":
-    get_media_sizes()
+    for path in data_paths:
+        get_media_sizes(path)
