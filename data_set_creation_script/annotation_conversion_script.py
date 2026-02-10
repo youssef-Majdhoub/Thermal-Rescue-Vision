@@ -56,3 +56,130 @@ def convert_coco_to_yolo(
                 f.write(category_info["name"] + "\n")
             else:
                 print(f"Category with ID {id} not found in COCO data.")
+
+
+def convert_yolo_to_coco(
+    yolo_annotation_path, images_path, output_json_path, needed_categories=None
+):
+    """
+    Args:
+        yolo_annotation_path: Path to folder with .txt files
+        images_path: Path to folder with images
+        output_json_path: Where to save the result .json
+        needed_categories: List of class names (e.g., ["dog", "cat"]).
+                           Index 0 is "dog", Index 1 is "cat".
+    """
+
+    # 1. Initialize the COCO dictionary structure
+    coco_data = {
+        "info": {"description": "Converted from YOLO to COCO"},
+        "images": [],
+        "annotations": [],
+        "categories": [],
+    }
+
+    # 2. Add Categories (The "Map")
+    # If the user provided names, we add them here.
+    # COCO needs to know that ID 0 = "cat", ID 1 = "dog", etc.
+    if needed_categories:
+        for index, name in enumerate(needed_categories):
+            coco_data["categories"].append(
+                {"id": index, "name": name, "supercategory": "none"}
+            )
+
+    # Global counters for unique IDs
+    annotation_id = 1
+    image_id = 1
+
+    # Get all .txt files
+    yolo_files = [f for f in os.listdir(yolo_annotation_path) if f.endswith(".txt")]
+
+    for yolo_file in tqdm(yolo_files, desc="Converting"):
+
+        # 3. Find the matching image
+        # YOLO file is "image_01.txt", we need "image_01.jpg" or ".png"
+        base_name = os.path.splitext(yolo_file)[0]
+        image_name = None
+
+        # Check common extensions
+        for ext in [".jpg", ".jpeg", ".png", ".bmp"]:
+            if os.path.exists(os.path.join(images_path, base_name + ext)):
+                image_name = base_name + ext
+                break
+
+        if image_name is None:
+            print(f"Warning: Image not found for {yolo_file}, skipping.")
+            continue
+
+        # 4. Read Image Size (CRITICAL STEP)
+        # YOLO doesn't know image size, but COCO *requires* it.
+        # We must open the image to get height/width.
+        img = cv2.imread(os.path.join(images_path, image_name))
+        if img is None:
+            continue
+
+        h_img, w_img = img.shape[:2]
+
+        # Add image info to COCO 'images' list
+        coco_data["images"].append(
+            {"id": image_id, "file_name": image_name, "width": w_img, "height": h_img}
+        )
+
+        # 5. Read Annotations from .txt
+        with open(os.path.join(yolo_annotation_path, yolo_file), "r") as f:
+            lines = f.readlines()
+
+        for line in lines:
+            parts = line.strip().split()
+            # Expecting: class_id x_center y_center width height
+            if len(parts) < 5:
+                continue
+
+            class_id = int(parts[0])
+            x_c_norm = float(parts[1])  # 0.0 to 1.0
+            y_c_norm = float(parts[2])  # 0.0 to 1.0
+            w_norm = float(parts[3])  # 0.0 to 1.0
+            h_norm = float(parts[4])  # 0.0 to 1.0
+
+            # -----------------------------------------------------------
+            # THE MATH CONVERSION (YOLO -> COCO)
+            # -----------------------------------------------------------
+
+            # A. Un-normalize (Percentage -> Pixels)
+            w_px = w_norm * w_img
+            h_px = h_norm * h_img
+            x_c_px = x_c_norm * w_img
+            y_c_px = y_c_norm * h_img
+
+            # B. Center -> Top-Left Corner
+            # COCO wants the top-left corner (x_min, y_min), not the center.
+            # To get to the left edge, move left by half the width.
+            # To get to the top edge, move up by half the height.
+            x_min = x_c_px - (w_px / 2)
+            y_min = y_c_px - (h_px / 2)
+
+            # Add to 'annotations' list
+            coco_data["annotations"].append(
+                {
+                    "id": annotation_id,
+                    "image_id": image_id,  # This links the box to the image above
+                    "category_id": class_id,
+                    "bbox": [x_min, y_min, w_px, h_px],  # COCO format
+                    "area": w_px * h_px,
+                    "iscrowd": 0,
+                }
+            )
+
+            annotation_id += 1  # Increment for next box
+
+        image_id += 1  # Increment for next image
+
+    # 6. Save the final JSON
+    with open(output_json_path, "w") as f:
+        json.dump(coco_data, f, indent=4)
+    print(f"Success! Saved to {output_json_path}")
+
+
+# --- Example Usage ---
+# classes = ["person", "car", "dog"]
+# convert_yolo_to_coco("my_yolo_txts/", "my_images/", "output.json", classes)
