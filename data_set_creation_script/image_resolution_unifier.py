@@ -47,6 +47,7 @@ def unify_image_resolutions(input_dir, output_dir, target_size=(640, 512)):
                     img, pad_top, pad_bottom, 0, 0, cv2.BORDER_CONSTANT, value=[0, 0, 0]
                 )
                 cv2.imwrite(os.path.join(output_dir, img_name), padded_img)
+                return pad_top, pad_bottom
             elif res == (1280, 720):
                 # Resize to 640x360
                 resized_img = cv2.resize(img, (640, 360), interpolation=cv2.INTER_AREA)
@@ -63,6 +64,7 @@ def unify_image_resolutions(input_dir, output_dir, target_size=(640, 512)):
                     value=[0, 0, 0],
                 )
                 cv2.imwrite(os.path.join(output_dir, img_name), padded_img)
+                return pad_top, pad_bottom
             else:
                 print(
                     f"⚠️ Warning: Unsupported resolution {res} for {img_name}. Skipping."
