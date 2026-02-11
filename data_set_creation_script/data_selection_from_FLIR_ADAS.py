@@ -31,7 +31,7 @@ def select_images_from_flir_adas(
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    dest_images_dir = os.path.join(output_dir, "images")
+    dest_images_dir = os.path.join(output_dir, "data")
     dest_json_path = os.path.join(output_dir, "coco.json")
 
     if not os.path.exists(dest_images_dir):
@@ -146,8 +146,9 @@ def select_images_from_flir_adas(
 
     print(f"Copying {len(final_image_list)} images to {dest_images_dir}...")
     for img in tqdm(final_image_list, desc="Copying"):
-        src_path = os.path.join(image_source_dir, img["file_name"])
-        dst_path = os.path.join(dest_images_dir, img["file_name"])
+        real_name = os.path.basename(img["file_name"])
+        src_path = os.path.join(image_source_dir, real_name)
+        dst_path = os.path.join(dest_images_dir, real_name)
 
         # Handle subfolders if necessary (e.g. if filename is "data/img1.jpg")
         os.makedirs(os.path.dirname(dst_path), exist_ok=True)
@@ -163,9 +164,9 @@ def select_images_from_flir_adas(
 if __name__ == "__main__":
     # --- CONFIGURATION ---
     # Use raw strings (r"") for Windows paths
-    img_path = r"C:\Users\medbe\OneDrive\Bureau\PFA2026\archive\FLIR_ADAS_v2\images_thermal_train\data"
-    json_path = r"C:\Users\medbe\OneDrive\Bureau\PFA2026\archive\FLIR_ADAS_v2\images_thermal_train\coco.json"
-    out_dir = r"C:\Users\medbe\OneDrive\Bureau\PFA2026\final_data_sets\Flir_traning"
+    img_path = r"C:/Users/medbe/OneDrive/Bureau/PFA2026/archive/FLIR_ADAS_v2/images_thermal_train/data"
+    json_path = r"C:/Users/medbe/OneDrive/Bureau/PFA2026/archive/FLIR_ADAS_v2/images_thermal_train/coco.json"
+    out_dir = r"C:/Users/medbe/OneDrive/Bureau/PFA2026/final_data_sets/Flir_traning"
 
     # Define which IDs are humans in your source dataset
     human_ids = [1, 73, 74]
