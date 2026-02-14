@@ -2,7 +2,7 @@ import os
 import cv2
 import numpy as np
 
-mapping_list = ["Background", "Fire Extinguisher", "Backpack", "Hand Drill", "Survivor"]
+mapping_list = ["Background", "Fire Extinguisher", "Backpack", "Hand Drill", "human"]
 
 
 def create_yolo_annotation(
@@ -10,6 +10,9 @@ def create_yolo_annotation(
 ):
     if not (os.path.exists(output_annotation_path)):
         os.makedirs(output_annotation_path)
+    output_annotation_data_path = os.path.join(output_annotation_path, "data")
+    if not (os.path.exists(output_annotation_data_path)):
+        os.makedirs(output_annotation_data_path)
     label_image = cv2.imread(label_image_path, cv2.IMREAD_GRAYSCALE)
     if label_image is None:
         print(f"Failed to read image: {label_image_path}")
@@ -18,7 +21,6 @@ def create_yolo_annotation(
     yolo_lines = []
     # Get unique pixel values (classes) present in this image
     unique_values = np.unique(label_image)
-    print("Unique pixel values found:", unique_values)
     for pixel_value in unique_values:
         if pixel_value == 0:
             continue  # Skip background
@@ -40,14 +42,26 @@ def create_yolo_annotation(
             )
             yolo_lines.append(yolo_line)
     file_name = os.path.splitext(os.path.basename(label_image_path))[0] + ".txt"
-    output_file_path = os.path.join(output_annotation_path, file_name)
+    output_file_path = os.path.join(output_annotation_data_path, file_name)
     with open(output_file_path, "w") as f:
         f.writelines(yolo_lines)
-    parent_path = os.path.dirname(output_annotation_path)
-    additional_info_path = os.path.join(parent_path, "obj.names")
+    additional_info_path = os.path.join(output_annotation_path, "obj.names")
     with open(additional_info_path, "w") as f:
         for index in needed_indexes:
             f.write(mapping_list[index] + "\n")
+
+
+def create_yolo_annotations_from_label_images(
+    label_images_dir, output_annotation_dir, needed_indexes=[1, 2, 3, 4]
+):
+    if not os.path.exists(output_annotation_dir):
+        os.makedirs(output_annotation_dir)
+    for file_name in os.listdir(label_images_dir):
+        if file_name.endswith((".png", ".jpg", ".jpeg")):
+            label_image_path = os.path.join(label_images_dir, file_name)
+            create_yolo_annotation(
+                label_image_path, output_annotation_dir, needed_indexes
+            )
 
 
 if __name__ == "__main__":

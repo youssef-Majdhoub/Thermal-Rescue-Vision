@@ -41,9 +41,8 @@ def convert_coco_to_yolo(
         yolo_line = (
             f"{category_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}\n"
         )
-        output_file_path = os.path.join(
-            data_path, f"{os.path.splitext(image_info['file_name'])[0]}.txt"
-        )
+        last_name = os.path.splitext(os.path.basename(image_info["file_name"]))[0]
+        output_file_path = os.path.join(data_path, f"{last_name}.txt")
         with open(output_file_path, "a") as f:
             f.write(yolo_line)
     object_names_path = os.path.join(output_annotation_path, "obj.names")
@@ -81,11 +80,17 @@ def convert_yolo_to_coco(
     # 2. Add Categories (The "Map")
     # If the user provided names, we add them here.
     # COCO needs to know that ID 0 = "cat", ID 1 = "dog", etc.
-    if needed_categories:
-        for index, name in enumerate(needed_categories):
-            coco_data["categories"].append(
-                {"id": index, "name": name, "supercategory": "none"}
-            )
+    categories_path = os.path.join(yolo_annotation_path, "obj.names")
+    with open(categories_path, "r") as f:
+        category_names = [line.strip() for line in f.readlines()]
+    if needed_categories is None:
+        pass
+    else:
+        category_names = [category_names[i] for i in needed_categories]
+    for index, name in enumerate(category_names):
+        coco_data["categories"].append(
+            {"id": index, "name": name, "supercategory": "none"}
+        )
 
     # Global counters for unique IDs
     annotation_id = 1
