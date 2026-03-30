@@ -4,15 +4,6 @@ import shutil
 import json
 import yaml
 
-source_folder = "C:/Users/medbe/OneDrive/Bureau/PFA2026/final_data_sets"
-flir_folder = os.path.join(source_folder, "Flir_data_set")
-pst900_folder = os.path.join(source_folder, "PST900_data_set")
-falling_human_folder = os.path.join(source_folder, "falling_human")
-destination_folder = (
-    "C:/Users/medbe/OneDrive/Bureau/PFA2026/final_data_sets/final_data_set"
-)
-os.makedirs(destination_folder, exist_ok=True)
-
 
 # Function to copy images in folder called data
 def copy_images_in_data_folder(source_folder, destination_folder):
@@ -89,7 +80,9 @@ def merge_yolo_annotations(destination_folder, yolo_annotation_folders=[]):
         yaml.dump(yaml_data, yaml_file, default_flow_style=False)
 
 
-def create_final_training_set():
+def create_final_training_set(
+    destination_folder, flir_folder, falling_human_folder, pst900_folder
+):
     final_training_folder = os.path.join(destination_folder, "training")
     os.makedirs(final_training_folder, exist_ok=True)
     data_path = os.path.join(final_training_folder, "data")
@@ -118,7 +111,9 @@ def create_final_training_set():
     merge_yolo_annotations(yolo_path, yolo_paths)
 
 
-def create_final_validation_set():
+def create_final_validation_set(
+    destination_folder, flir_folder, falling_human_folder, pst900_folder
+):
     final_validation_folder = os.path.join(destination_folder, "validation")
     os.makedirs(final_validation_folder, exist_ok=True)
     data_path = os.path.join(final_validation_folder, "data")
@@ -148,5 +143,17 @@ def create_final_validation_set():
 
 
 if __name__ == "__main__":
-    create_final_training_set()
-    create_final_validation_set()
+    source_folder = "C:/Users/medbe/OneDrive/Bureau/PFA2026/final_data_sets"
+    flir_folder = os.path.join(source_folder, "Flir_data_set")
+    pst900_folder = os.path.join(source_folder, "PST900_data_set")
+    falling_human_folder = os.path.join(source_folder, "falling_human")
+    destination_folder = (
+        "C:/Users/medbe/OneDrive/Bureau/PFA2026/final_data_sets/final_data_set"
+    )
+    os.makedirs(destination_folder, exist_ok=True)
+    create_final_training_set(
+        destination_folder, flir_folder, falling_human_folder, pst900_folder
+    )
+    create_final_validation_set(
+        destination_folder, flir_folder, falling_human_folder, pst900_folder
+    )

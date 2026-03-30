@@ -7,21 +7,26 @@ import shutil
 from tqdm import tqdm
 
 
-def create_flir_adas_final_data_set(new_traning_size=1000, new_test_size=200):
+def create_flir_adas_final_data_set(
+    new_traning_size=1000,
+    new_test_size=200,
+    old_tranning_dir=None,
+    old_test_dir=None,
+    new_tranning_dir=None,
+    new_test_dir=None,
+):
     """those images are already 640x512,
     so we can just copy them to the output directory without resizing or padding.
     we select a subset of thsoe images so we done need the whole dataset for training nor testing.
     """
-    old_tranning_dir = "C:/Users/medbe/OneDrive/Bureau/PFA2026/archive/FLIR_ADAS_v2/images_thermal_train"
-    old_test_dir = (
-        "C:/Users/medbe/OneDrive/Bureau/PFA2026/archive/FLIR_ADAS_v2/images_thermal_val"
-    )
-    new_tranning_dir = (
-        "C:/Users/medbe/OneDrive/Bureau/PFA2026/final_data_sets/Flir_data_set/training"
-    )
-    new_test_dir = (
-        "C:/Users/medbe/OneDrive/Bureau/PFA2026/final_data_sets/Flir_data_set/testing"
-    )
+    if old_tranning_dir is None:
+        old_tranning_dir = "C:/Users/medbe/OneDrive/Bureau/PFA2026/archive/FLIR_ADAS_v2/images_thermal_train"
+    if old_test_dir is None:
+        old_test_dir = "C:/Users/medbe/OneDrive/Bureau/PFA2026/archive/FLIR_ADAS_v2/images_thermal_val"
+    if new_tranning_dir is None:
+        new_tranning_dir = "C:/Users/medbe/OneDrive/Bureau/PFA2026/final_data_sets/Flir_data_set/training"
+    if new_test_dir is None:
+        new_test_dir = "C:/Users/medbe/OneDrive/Bureau/PFA2026/final_data_sets/Flir_data_set/testing"
     old_tranning_images_path = os.path.join(old_tranning_dir, "data")
     old_tranning_json_path = os.path.join(old_tranning_dir, "coco.json")
     old_test_images_path = os.path.join(old_test_dir, "data")
@@ -61,7 +66,13 @@ def create_flir_adas_final_data_set(new_traning_size=1000, new_test_size=200):
     )
 
 
-def create_PST900_final_data_set():
+def create_PST900_final_data_set(
+    main_path=None,
+    original_training_images_dir=None,
+    original_training_labels_dir=None,
+    original_testing_images_dir=None,
+    original_testing_labels_dir=None,
+):
     """those images are 1280x720, so we need to resize them to 640x512 with padding.
     there is no coco nor yolo annotations for this dataset, we need to resize then then create the coco and yolo annotations from scratch.
     for that purpose we will use temprary directories to store the resized images and the label images which are also resized to 640x512
@@ -69,7 +80,8 @@ def create_PST900_final_data_set():
     then we will delete the temprary resized_PST900 directory and create the PST900_data_set.
     all temprary and final directories will contain two subdirectories one for training and one for testing.
     """
-    main_path = "C:/Users/medbe/OneDrive/Bureau/PFA2026/final_data_sets"
+    if main_path is None:
+        main_path = "C:/Users/medbe/OneDrive/Bureau/PFA2026/final_data_sets"
     temprary_resized_dir = os.path.join(main_path, "temprary_resized_PST900")
     final_pst900_dir = os.path.join(main_path, "PST900_data_set")
     if not os.path.exists(temprary_resized_dir):
@@ -89,10 +101,14 @@ def create_PST900_final_data_set():
     if not os.path.exists(testing_final_dir):
         os.makedirs(testing_final_dir)
     # here we will resize the images and the label images to 640x512 with padding
-    orginal_training_images_dir = "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\real_data\\PST900_RGBT_Dataset\\train\\thermal"
-    orginal_training_labels_dir = "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\real_data\\PST900_RGBT_Dataset\\train\\labels"
-    orginal_testing_images_dir = "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\real_data\\PST900_RGBT_Dataset\\test\\thermal"
-    orginal_testing_labels_dir = "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\real_data\\PST900_RGBT_Dataset\\test\\labels"
+    if original_training_images_dir is None:
+        original_training_images_dir = "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\real_data\\PST900_RGBT_Dataset\\train\\thermal"
+    if original_training_labels_dir is None:
+        original_training_labels_dir = "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\real_data\\PST900_RGBT_Dataset\\train\\labels"
+    if original_testing_images_dir is None:
+        original_testing_images_dir = "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\real_data\\PST900_RGBT_Dataset\\test\\thermal"
+    if original_testing_labels_dir is None:
+        original_testing_labels_dir = "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\real_data\\PST900_RGBT_Dataset\\test\\labels"
     resized_training_images_dir = os.path.join(training_temprary_dir, "data")
     resized_training_labels_dir = os.path.join(training_temprary_dir, "labels")
     resized_testing_images_dir = os.path.join(testing_temprary_dir, "data")
@@ -107,20 +123,20 @@ def create_PST900_final_data_set():
         os.makedirs(resized_testing_labels_dir)
     # resize training images and labels
     unify_image_resolutions(
-        input_dir=orginal_training_images_dir,
+        input_dir=original_training_images_dir,
         output_dir=resized_training_images_dir,
     )
     unify_image_resolutions(
-        input_dir=orginal_training_labels_dir,
+        input_dir=original_training_labels_dir,
         output_dir=resized_training_labels_dir,
     )
     # resize testing images and labels
     unify_image_resolutions(
-        input_dir=orginal_testing_images_dir,
+        input_dir=original_testing_images_dir,
         output_dir=resized_testing_images_dir,
     )
     unify_image_resolutions(
-        input_dir=orginal_testing_labels_dir,
+        input_dir=original_testing_labels_dir,
         output_dir=resized_testing_labels_dir,
     )
     # create yolo annotations from the resized label images
@@ -172,32 +188,37 @@ def create_PST900_final_data_set():
     )
 
 
-def create_final_falling_human_data_set():
+def create_final_falling_human_data_set(
+    original_dir=None, final_training_dir=None, final_testing_dir=None
+):
     """this function will create the final falling human dataset , the yolo annotations for this dataset
     are already created but stored badly in one directory for both training and testing images, so we will
     need to separate the annotations for training and testing images and store them in the final dataset
     also we will need to make sure the category is stored in obj.names.txt file in the final dataset directory
     and we need to create coco annotations from the yolo annotations and store them"""
     # path to the original dataset
-    original__dir = "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\falling humans"
-    original_training_dir = os.path.join(original__dir, "train")
-    original_testing_dir = os.path.join(original__dir, "validation")
+    if original_dir is None:
+        original_dir = "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\falling humans"
+    original_training_dir = os.path.join(original_dir, "train")
+    original_testing_dir = os.path.join(original_dir, "validation")
     original_yolo_annotations_dir = os.path.join(
         original_training_dir, "label", "obj_Train_data"
     )
     original_training_images_dir = os.path.join(original_training_dir, "image")
     original_testing_images_dir = os.path.join(original_testing_dir, "image val")
     # create the final dataset directories
-    final_training_dir = os.path.join(
-        "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\final_data_sets",
-        "falling_human",
-        "training",
-    )
-    final_testing_dir = os.path.join(
-        "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\final_data_sets",
-        "falling_human",
-        "testing",
-    )
+    if final_training_dir is None:
+        final_training_dir = os.path.join(
+            "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\final_data_sets",
+            "falling_human",
+            "training",
+        )
+    if final_testing_dir is None:
+        final_testing_dir = os.path.join(
+            "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\final_data_sets",
+            "falling_human",
+            "testing",
+        )
     if not os.path.exists(final_training_dir):
         os.makedirs(final_training_dir)
     if not os.path.exists(final_testing_dir):
