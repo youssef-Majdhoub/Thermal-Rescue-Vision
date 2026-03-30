@@ -81,11 +81,11 @@ def get_media_sizes(directory=None):
         print("\n🎥 VIDEOS: None found.")
 
 
-data_paths = [
-    "C:/Users/medbe/OneDrive/Bureau/PFA2026/falling humans/uncommpressed_data/Fall1",
-    "C:/Users/medbe/OneDrive/Bureau/PFA2026/archive/FLIR_ADAS_v2/images_thermal_train/data",
-    "C:/Users/medbe/OneDrive/Bureau/PFA2026/real_data/PST900_RGBT_Dataset/train/thermal",
-]
 if __name__ == "__main__":
+    data_paths = [
+        "C:/Users/medbe/OneDrive/Bureau/PFA2026/falling humans/uncommpressed_data/Fall1",
+        "C:/Users/medbe/OneDrive/Bureau/PFA2026/archive/FLIR_ADAS_v2/images_thermal_train/data",
+        "C:/Users/medbe/OneDrive/Bureau/PFA2026/real_data/PST900_RGBT_Dataset/train/thermal",
+    ]
     for path in data_paths:
         get_media_sizes(path)
