@@ -3,7 +3,7 @@ import cv2
 import os
 
 # Make sure this points to your TRAINED weights (e.g., runs/detect/train/weights/best.pt)
-model = YOLO("runs/detect/train/weights/best.pt")
+model = YOLO("runs/detect/train5/weights/best.pt")
 
 if __name__ == "__main__":
     images_folder = input(
