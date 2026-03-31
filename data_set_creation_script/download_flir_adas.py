@@ -5,9 +5,11 @@ import shutil
 
 def download_flir_adas_dataset(output_path=None):
     if output_path is None:
-        output_path = os.path.abspath("./")
+        output_path = os.path.abspath("./archive1")
+        os.makedirs(output_path, exist_ok=True)
     path = kagglehub.dataset_download(
-        "samdazel/teledyne-flir-adas-thermal-dataset-v2", output=output_path, unzip=True
+        "samdazel/teledyne-flir-adas-thermal-dataset-v2",
+        output_dir=output_path,
     )
     file_name = os.path.basename(path)
     file_path = os.path.dirname(path)
