@@ -8,8 +8,8 @@ from tqdm import tqdm
 
 
 def create_flir_adas_final_data_set(
-    new_traning_size=1000,
-    new_test_size=200,
+    new_traning_size=300,
+    new_test_size=50,
     old_tranning_dir=None,
     old_test_dir=None,
     new_tranning_dir=None,
@@ -189,7 +189,11 @@ def create_PST900_final_data_set(
 
 
 def create_final_falling_human_data_set(
-    original_dir=None, final_training_dir=None, final_testing_dir=None
+    original_dir=None,
+    final_training_dir=None,
+    final_testing_dir=None,
+    num_training_images=300,
+    num_testing_images=100,
 ):
     """this function will create the final falling human dataset , the yolo annotations for this dataset
     are already created but stored badly in one directory for both training and testing images, so we will
@@ -239,10 +243,14 @@ def create_final_falling_human_data_set(
         os.makedirs(final_training_yolo_data_path)
     if not os.path.exists(final_testing_yolo_data_path):
         os.makedirs(final_testing_yolo_data_path)
+    s = 0
     for file_name in tqdm(
         os.listdir(original_training_images_dir),
         desc="Copying training images and annotations",
     ):
+        if s >= num_training_images:
+            break
+        s += 1
         annotation_file_name = os.path.splitext(file_name)[0] + ".txt"
         shutil.copy(
             os.path.join(original_training_images_dir, file_name),
@@ -270,11 +278,14 @@ def create_final_falling_human_data_set(
         os.makedirs(final_testing_images_dir)
     if not os.path.exists(final_testing_annotations_dir):
         os.makedirs(final_testing_annotations_dir)
+    s = 0
     for file_name in tqdm(
         os.listdir(original_testing_images_dir),
         desc="Copying testing images and annotations",
     ):
-
+        if s >= num_testing_images:
+            break
+        s += 1
         shutil.copy(
             os.path.join(original_testing_images_dir, file_name),
             os.path.join(final_testing_images_dir, file_name),
