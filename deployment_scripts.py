@@ -16,7 +16,7 @@ if __name__ == "__main__":
         print(f"Running inference on all images in: {images_folder}")
 
         # YOLO handles directory paths directly!
-        results = model.predict(source=images_folder, conf=0.25, save=True)
+        results = model.predict(source=images_folder, conf=0.1, save=True)
         print("Inference completed. Results saved to 'runs/detect/predict'.")
 
         # Safer way to show results without crashing your screen
