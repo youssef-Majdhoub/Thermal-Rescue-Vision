@@ -79,6 +79,7 @@ def get_media_sizes(directory=None):
             print(f"   {size[0]} x {size[1]}  |  Count: {count}")
     else:
         print("\n🎥 VIDEOS: None found.")
+    return image_sizes, video_sizes
 
 
 if __name__ == "__main__":
