@@ -4,7 +4,9 @@ import yaml
 from tqdm import tqdm
 
 
-def create_yolo_dataset_structure(main_folder, test_path=None):
+def create_yolo_dataset_structure(
+    main_folder, final_datasets_path=None, test_path=None
+):
     """this function will create the dataset structure for the yolo format.
     it will create a main folder with two subfolders one for training and one for validation.
     each subfolder will contain two subfolders one for images and one for labels.
@@ -37,8 +39,14 @@ def create_yolo_dataset_structure(main_folder, test_path=None):
         yaml.dump(yaml_content, yaml_file, sort_keys=False)
     print(f"Dataset structure created at: {main_folder}")
     # the sources paths
-    training_source_path = r".\final_data_sets\final_data_set\training"
-    validation_source_path = r".\final_data_sets\final_data_set\validation"
+    if final_datasets_path is None:
+        final_datasets_path = os.path.abspath(r"./")  # this is just for testing
+    training_source_path = os.path.join(
+        final_datasets_path, "final_data_set", "training"
+    )
+    validation_source_path = os.path.join(
+        final_datasets_path, "final_data_set", "validation"
+    )
     training_images_source = os.path.join(training_source_path, "data")
     training_labels_source = os.path.join(
         training_source_path, "yolo_annotations", "data"
