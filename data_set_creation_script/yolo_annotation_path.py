@@ -40,7 +40,10 @@ def create_yolo_dataset_structure(
     print(f"Dataset structure created at: {main_folder}")
     # the sources paths
     if final_datasets_path is None:
-        final_datasets_path = os.path.abspath(r"./")  # this is just for testing
+        final_datasets_path = os.path.abspath(r"./")
+        final_datasets_path = os.path.join(
+            final_datasets_path, "final_data_sets"
+        )  # this is just for testing
     training_source_path = os.path.join(
         final_datasets_path, "final_data_set", "training"
     )
