@@ -68,5 +68,5 @@ if __name__ == "__main__":
     output_annotation_path = "C:/Users/medbe/OneDrive/Bureau/PFA2026/real_data/PST900_RGBT_Dataset/train/yolo_annotations"
     label_images_folder = "C:/Users/medbe/OneDrive/Bureau/PFA2026/real_data/PST900_RGBT_Dataset/train/labels/32_bag2a_rect_rgb_frame0000000550.png"
     create_yolo_annotation(
-        label_images_folder, output_annotation_path, needed_indexes=[4]
+        label_images_folder, output_annotation_path, needed_indexes=[3]
     )

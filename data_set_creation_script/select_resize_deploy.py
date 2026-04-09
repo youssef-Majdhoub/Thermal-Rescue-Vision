@@ -146,7 +146,7 @@ def create_PST900_final_data_set(
     create_yolo_annotations_from_label_images(
         label_images_dir=resized_training_labels_dir,
         output_annotation_dir=training_yolo_annotation_path,
-        needed_indexes=[4],
+        needed_indexes=[3],
     )
     testing_yolo_annotation_path = os.path.join(testing_final_dir, "yolo_annotations")
     if not os.path.exists(testing_yolo_annotation_path):
@@ -154,7 +154,7 @@ def create_PST900_final_data_set(
     create_yolo_annotations_from_label_images(
         label_images_dir=resized_testing_labels_dir,
         output_annotation_dir=testing_yolo_annotation_path,
-        needed_indexes=[4],
+        needed_indexes=[3],
     )
     # copy the resized images to the final directory
     final_traning_data_path = os.path.join(training_final_dir, "data")
@@ -205,11 +205,9 @@ def create_final_falling_human_data_set(
         original_dir = "C:\\Users\\medbe\\OneDrive\\Bureau\\PFA2026\\falling humans"
     original_training_dir = os.path.join(original_dir, "train")
     original_testing_dir = os.path.join(original_dir, "validation")
-    original_yolo_annotations_dir = os.path.join(
-        original_training_dir, "label", "obj_Train_data"
-    )
-    original_training_images_dir = os.path.join(original_training_dir, "image")
-    original_testing_images_dir = os.path.join(original_testing_dir, "image val")
+    original_yolo_annotations_dir = os.path.join(original_training_dir, "labels")
+    original_training_images_dir = os.path.join(original_training_dir, "images")
+    original_testing_images_dir = os.path.join(original_testing_dir, "images")
     # create the final dataset directories
     if final_training_dir is None:
         final_training_dir = os.path.join(
