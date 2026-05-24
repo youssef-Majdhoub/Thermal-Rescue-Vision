@@ -1,191 +1,131 @@
-Thermal Rescue Vision: Autonomous Navigation in Low-Visibility Environments 🚁🌡️
+# Thermal Rescue Vision: Embedded Perception Module for Autonomous Search and Rescue (SAR) Robotics 🚁🌡️
 
-Deep learning-based computer vision system for thermal object detection in rescue robotics.
+An advanced embedded computer vision framework developed to power autonomous terrestrial rescue robots operating under degraded visibility conditions (smoke, total darkness, dust, and concrete debris). 
 
-📖 Operational Context
+This project serves as the core perception engine for tactical engineering solutions in hazardous fields, systematically isolating, identifying, and tracking human thermal signatures to assist emergency responders and Civil Protection teams.
 
-This project serves as the visual processing unit for autonomous rescue robots operating in confined, low-visibility environments (e.g., collapsed mines, smoke-filled corridors, subway wreckage).
+---
 
-In such scenarios, standard RGB sensors are rendered ineffective by poor lighting, and LiDAR performance degrades due to particulate matter. Radiometric Thermal Imagery (FLIR) is utilized as the primary sensing modality to locate survivors based on heat signatures rather than visual contrast.
+## 📖 Operational Context & Technical Challenges
 
-📊 Datasets & Training Data
+During emergency operations (e.g., structural collapses, active fires, industrial accidents), standard RGB cameras fail due to light dependency, while LiDAR systems suffer from reflection distortions caused by high particulate suspension (dust, smoke). 
 
-To ensure robust detection in diverse environments, this project utilizes a tiered data strategy, moving from general recognition to specific deployment scenarios.
+This architecture leverages **Infrared Thermography** to sense natural body heat emissions, bypassing visual barriers. The core engineering challenges addressed are:
+* **Thermal Clutter Filtering:** Distinguishing true human signatures from high-density environmental heat anomalies (e.g., thermal echoes, warm machinery, solar-heated asphalt, fire pits).
+* **Edge Computing Optimization:** Fine-tuning object detection networks to optimize the trade-off between geometric precision, high sensitivity, and rapid inference times on resource-constrained embedded robotic hardware.
 
-1. General Recognition: FLIR Thermal Starter Dataset (ADAS)
+---
 
-Role: Primary Baseline.
+## 📊 Dataset Ingestion & Curation Strategy
 
-Objective: Foundational human detection (walking/standing).
+To build domain generalization and prevent model bias across varied search environments, the training pipeline handles hybrid data ingestion from multiple reference sets (including **PST900**, **Teledyne FLIR ADAS**, and the **Khan Falling Humans** video dataset).
 
-Resolution: 640×512 (Matches sensor specifications).
+### Data Distribution Layout
+The unified database is strictly segregated into three distinct subsets to guarantee an impartial performance evaluation and eliminate overfitting:
+* **Training Set (80%–85%):** Used by the network architectures to extract specific human thermal features and iteratively update internal weights.
+* **Validation Set (~10%):** Utilized during the training phase to tune hyperparameters and implement early stopping mechanics.
+* **Test Set (5%–10%):** Composed exclusively of unencountered, novel images to act as an objective evaluation benchmark under real-world conditions.
 
-Volume: 10,000+ labeled thermal frames.
+### Training Hyperparameters & Data Augmentation
+To maximize performance within physical hardware constraints (trained using an active **RTX GPU** execution state), the configuration parameters were structured as follows:
+* **Epochs:** 200 (`epochs=200`) to guarantee deep structural convergence of complex thermal silhouettes.
+* **Batch Size:** 8 (`batch=8`) optimized for hardware Video RAM limits.
+* **Input Resolution:** Resized to 640x640 pixels (`imgsz=640`) to maintain structural fidelity while keeping processing footprints low.
+* **Data Pipelines:** Accelerated via CUDA execution layers (`device="cuda"`), supported by 4 concurrent loader processes (`workers=4`) and active RAM caching (`cache=True`).
+* **Real-Time Data Augmentations:** Implemented to improve model robustness against background clutter, including spatial rotations (`degrees=5`), scaling transformations (`scale=0.9`), and advanced **Copy-Paste** synthesis (`copy_paste=0.5`) to overlay human thermal silhouettes onto novel unconditioned backbones.
 
-2. Pose Robustness: TSF (Thermal Simulated Fall)
+---
 
-Role: Asymmetric Recall & Posture Generalization.
+## 🧪 Model Performance & Validation Benchmarks
 
-Objective: To distinguish between a "standing rescuer" and a "prone survivor."
+Model tracking focuses on three key metrics: **Precision** (minimizing false alarms from ambient heat sources), **Recall** (ensuring no human victims are left behind), and **mAP** (overall localization and classification accuracy).
 
-Focus: Introduces "Distress" postures (lying prone, crawling, falling) which are absent in standard ADAS datasets. This is critical for the "Living Entities" branch of the network.
+### Validation Run Insights
+* **Overall Metrics:** The initial evaluation yielded an F1-Score of 0.72, with an overall tracking metric of **mAP@0.5 = 0.708**. 
+* **Geometric Precision:** Tight bounding box framing registered an **mAP@0.5:0.95 = 0.42**, showing room for spatial refinement around low-contrast silhouettes.
+* **Confusion Matrix Breakdown:** The core validation pass successfully logged **305 True Positives (TP)**. It registered 60 False Positives (FP), and identified 155 False Negatives (FN) where individuals blended heavily into thermal background noise or presented atypical postures (prone/collapsed states).
 
-3. Deployment Scenario: PST900 RGBT Dataset
+---
 
-Role: Operational Environment Fine-Tuning.
+## ⚖️ Architectural Trade-off: YOLOv8s vs. YOLO26m
 
-Objective: Domain adaptation for the final deployment environment.
+An extensive architectural comparison was conducted to evaluate the optimal model for embedded deployment. The test results are detailed in the index ledger below:
 
-Relevance: Unlike ADAS (outdoors), PST900 focuses specifically on subterranean and confined environments (tunnels, mines, caves).
+| Performance Metric | YOLOv8s | YOLO26m | Operational Winner |
+| :--- | :---: | :---: | :---: |
+| **Max Precision** | 1.00 | 1.00 | Tie |
+| **Max Recall** | **0.82** | 0.78 | **YOLOv8s** |
+| **mAP@0.5** | **0.725** | 0.708 | **YOLOv8s (+0.017)** |
+| **mAP@0.5:0.95** | ~0.40 | **~0.45** | **YOLO26m** |
+| **GPU Inference Latency** | ~1.4 ms | **~0.9 ms** | **YOLO26m (-36%)** |
+| **Real-Time Embedded Fit** | Partially | **Fully** | **YOLO26m** |
 
-Processing: Semantic segmentation masks are converted into binary "Existence" targets for our regressor.
+### 🛠️ Strategic Engineering Selection
+While **YOLO26m** demonstrated clear advantages in raw compute speed (reducing inference latency by 36% down to 0.9 ms) and a slight lead in bounding box geometry, **YOLOv8s was chosen as the primary deployment architecture**. 
 
-Source: PST900 Repository.
+In high-stakes search-and-rescue configurations, **Recall** is the absolute highest priority metric. Missing a survivor (a False Negative) carries catastrophic real-world consequences. YOLOv8s delivers a superior max recall score of **0.82** compared to YOLO26m's 0.78, making it the more reliable choice for preserving human lives.
 
-🛑 Optimization Strategy
+---
 
-Rescue robotics requires a tailored cost function to address specific failure modes. We implement a hierarchical error minimization strategy:
+## 📂 Project Repository Tree
 
-1. Human Count: Logarithmic Error Minimization (MSLE)
-
-Objective: Minimize relative error. This ensures high precision for small groups (critical for prioritization) while tolerating variance in high-density crowds.
-
-2. Living Entities: Asymmetric Recall Prioritization
-
-Objective: Zero False Negatives (Type II errors).
-
-Methodology: A weighted penalty (10x) is applied specifically to missing a target.
-
-Outcome: The system minimizes the risk of overlooking a survivor (Critical Failure).
-
-🧪 Automated Hyperparameter Search
-
-To scientifically determine the optimal configuration for deployment, the project now includes an Automated Experimentation Engine.
-
-Instead of manual trial-and-error, the Experimentation class performs a structured Grid Search across:
-
-Batch Sizes: Balancing VRAM usage vs. Gradient stability.
-
-Optimizers: Comparing convergence of Adam vs. SGD vs. RMSProp.
-
-Learning Rates: Finding the "Goldilocks zone" for Zero-Gamma convergence.
-
-State Persistence & Crash Recovery
-
-The engine features a Transactional State Manager (experiment_state.pt).
-
-Immutability: The experiment plan (Optimizers/LRs) is "sealed" at start-up. Code changes during a run are ignored to ensure scientific consistency.
-
-Crash Recovery: If the training rig (RTX 3060) loses power, the script automatically detects the state file and resumes exactly where it left off, skipping completed permutations.
-
-⚙️ System Architecture
-
-Experimental Phase 1: Modified ResNet50
-
-We are currently utilizing ResNet50 as our initial baseline architecture to establish performance benchmarks. Future iterations will evaluate lighter, embedded-optimized backbones (e.g., MobileNet, EfficientNet) and Transformers to optimize the Accuracy-Latency trade-off on edge hardware.
-
-The current backbone is structurally adapted for single-channel thermal input with a Zero-Gamma Initialization strategy to prevent gradient explosion during the initial "cold start."
-
-Input: Conv2d(1, 64) for raw thermal tensors (Grayscale).
-
-Output: A Dual-Head Regression Layer yielding 2 Scalar Values:
-
-Human Count: The estimated number of standard standing/walking pedestrians (Rescuers/Bystanders).
-
-Living Things Count: The estimated total number of living entities, specifically capturing prone, crawling, or obscured survivors that standard detection might miss.
-
-Initialization: Residual branches initialized to zero ($\gamma=0$), forcing the network to act as an Identity Map initially.
-
-📂 Project Structure
-
-PFA2026/
-├── archive/                     # Raw Dataset Storage
-├── data_set/                    # Processed Datasets
-├── data_set_creation_script/    # Data Prep Tools
+```text
+Thermal-Rescue-Vision/
+├── data_set/                   # Unified and standardized tensor splits
+├── data_set_creation_script/   # Curation, parsing, and format transformation tools
 │   ├── data_evaluation_manager.py
-│   ├── data_integrity_check.py
-│   └── data_set_manager.py
-├── evaluation_set/              # Validation Splits
-├── falling humans/              # TSF / Pose Data
-├── real_data/                   # Deployment Data (PST900)
-│   ├── PST900_RGBT_Dataset/
-│   ├── PST900_RGBT_Dataset.zip
-│   └── readme.md
-├── training_scripts/            # Core Logic
-│   ├── data_handling.py         # Data Pipeline (Loader & Server)
-│   ├── expeimentation.py        # Automated Grid Search Engine
-│   └── training_script.py       # ResNet50 Class & Logic
-├── .gitignore
-├── readme.md
-├── requirements.txt
-└── setup.py
+│   └── data_integrity_check.py
+├── training_scripts/           # Computational logic
+│   ├── data_handling.py        # Stream loading, tensor formatting, and data feeding
+│   ├── expeimentation.py       # Automated grid-search and checkpoint recovery engine
+│   └── training_script.py      # Architectural definitions and training mechanics
+├── requirements.txt            # System dependencies
+└── setup.py                    # Distribution configurations
+```
 
+## 🚀 Quickstart Guide
 
-🚀 Usage Guide
+### 1. Dependencies and Environment Setup
 
-1. Environment Setup
-
-git clone [https://github.com/youssef-Majdhoub/Thermal-Rescue-Vision.git](https://github.com/youssef-Majdhoub/Thermal-Rescue-Vision.git)
+```bash
+git clone https://github.com/youssef-Majdhoub/Thermal-Rescue-Vision.git
 cd Thermal-Rescue-Vision
 pip install -r requirements.txt
+```
+---
 
+## 🛑 Project Appraisals & Long-Term Horizons
 
+### ⚡ Core Technical Advantages
+* **Visibility-Independent Tracking:** Delivers zero-light operational capabilities, tracking targets seamlessly through total darkness and active dense smoke.
+* **Low-Latency Edge Inference:** Optimized execution layer achieving highly responsive `1.4 ms` inference profiles for real-time stream processing.
+* **Modular Integration Architectures:** Native compatibility with standardized mobile terrestrial robotic platform base configurations.
 
+### ⚠️ Current Limitations & Future Work
 
-2. Automated Experimentation & Reporting Pipeline
-To scientifically determine the optimal configuration, the project utilizes a custom Experimentation Engine. This is not just a training loop; it is a full research pipeline that automates:
+> **Thermal Interference Challenge**
+> High-temperature ambient environments (e.g., burning debris, active structural fires) emit intense infrared background noise that can degrade victim contrast bounds.
 
--Grid Search: Iterates through every combination of batch size, optimizer, and learning rate.
+* **Sensor Fusion Pipeline:** Upcoming integration streams will combine the infrared vision network with **3D LiDAR sensor frameworks** to filter out environmental noise via geometric depth filtering.
+* **Transition to Local Edge AI:** Migrating compute workloads directly onto the robot's onboard processing hardware (e.g., **NVIDIA Jetson** platforms). This eliminates telemetry communication dependencies in enclosed cave systems or subterranean networks.
 
--Performance Profiling: Measures execution time per experiment (time.perf_counter) to identify the most computationally efficient configuration.
+---
 
--Crash Recovery: Automatically detects existing state files (experiment_state.pt) and resumes exactly where it left off.
+## 👥 Project Engineering Team
 
--Automated Analytics: Generates a full Markdown report with comparative plots for accuracy, loss, and speed.
+| Team Member | Operational Role & Focus |
+| :--- | :--- |
+| **Youssef Majdoub** | Computer Vision & Deep Learning Architecture |
+| **Amine Saadaoui** | Embedded Systems & Control Logic |
+| **Oussama Ammar** | Robotic Integration & Hardware Framework |
 
-# Launch (Auto-resumes if interrupted)
-experiment.run_experiments(mode="RTX3060")
+### 🎓 Academic Supervision
+> **Pr. Emna Aridhi**
+> *Département Technologies Avancées et Digitalisation de l'Industrie*
+> **École Nationale des Sciences et Technologies Avancées à Borj Cédria (ENSTAB)**
 
+---
 
-
-
-3. Inference / Deployment
-
-To load the best-performing model for edge deployment:
-
-from training_scripts.training_script import resnet50_adapted
-import os
-
-# Mode 1 = Deployment (Loads from deployment/ folder)
-model = resnet50_adapted(home_path=os.getcwd(), mode=1)
-
-# Ready for inference on Jetson/RTX 2050
-model.model.eval() 
-
-
-
-
-🛠️ Technology Stack
-
-Core Framework: Python 3.12, PyTorch 2.6
-
-Sensing Modality: FLIR Radiometric Thermal
-
-Acceleration: CUDA 12.4 (Ampere Architecture)
-
-Target Hardware: NVIDIA Jetson Orin / RTX Laptop
-
-👥 Project Team (ENSATB PFA 2026)
-
-Developed by engineering students at the National School of Advanced Sciences and Technologies of Borj Cedria (ENSTAB):
-
-Youssef Majdhoub – Computer Vision & AI Architecture
-
-Oussama Amar – Robotics Integration & Hardware
-
-Amin Saadaoui – Embedded Systems & Control
-
-Academic Supervision:
-Pr. Mme Emna Laaridhi – Department of Computer Engineering, ENSTAB
-
-License: Developed for academic purposes at ENSTAB.
+<p align="center">
+  <i>Developed for academic and research evaluation under the official guidelines of the University of Carthage.</i>
+</p>
